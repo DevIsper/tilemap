@@ -1,8 +1,16 @@
-//
-// Created by Gabriel Isper on 10/06/25.
-//
+// model/Tipo.h
+#ifndef TIPO_H
+#define TIPO_H
 
-enum Tipo
-{
-    CHAO, PAREDE
+enum Tipo {
+    CHAO = 0,
+    PAREDE = 1
 };
+
+enum TipoItem {
+    MOEDA,   // Exemplo: desenhar como um círculo amarelo
+    POCAO,   // Exemplo: desenhar como um círculo roxo
+    CHAVE    // Exemplo: desenhar como um círculo dourado
+};
+
+#endif // TIPO_H

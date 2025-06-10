@@ -3,14 +3,16 @@
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
-#include <allegro5/allegro_image.h> // NOVO: Adicionado para carregar imagens!
+#include <allegro5/allegro_image.h>
+
+void limparAllegro();
 
 #include <vector>
 #include <iostream>
 #include <random>
 #include <chrono>
 #include <cstdlib>
-#include <algorithm> // Para std::shuffle, std::sort, std::remove_if
+#include <algorithm>
 
 // Inclua suas classes
 #include "model/valueobjects/Tipo.cpp"
@@ -18,15 +20,16 @@
 #include "model/Jogador.h"
 #include "model/Item.h"
 
-void limparAllegro();
-
 // --- Dimensões do Mapa e Janela ---
 const int MAPA_LARGURA = 50;
 const int MAPA_ALTURA = 30;
-const int TAMANHO_TILE = 20;
+const int TAMANHO_TILE = 20; // Tamanho lógico do tile (para cálculos internos)
 
-int LARGURA_JANELA = MAPA_LARGURA * TAMANHO_TILE;
-int ALTURA_JANELA = MAPA_ALTURA * TAMANHO_TILE;
+// NOVO: Multiplicador para a escala da janela
+const float ESCALA_JANELA = 2.5f; // Cada tile de 20px será desenhado como 50px (20 * 2.5)
+
+int LARGURA_JANELA = static_cast<int>(MAPA_LARGURA * TAMANHO_TILE * ESCALA_JANELA);
+int ALTURA_JANELA = static_cast<int>(MAPA_ALTURA * TAMANHO_TILE * ESCALA_JANELA);
 
 // Constantes para a área de UI dos itens coletados
 const int UI_OFFSET_X = 20;
@@ -41,9 +44,18 @@ ALLEGRO_DISPLAY *display = nullptr;
 ALLEGRO_EVENT_QUEUE *event_queue = nullptr;
 ALLEGRO_FONT *font = nullptr;
 
-// NOVO: Ponteiros para as texturas dos tiles
+// Ponteiros para as texturas dos tiles
 ALLEGRO_BITMAP *chao_texture = nullptr;
 ALLEGRO_BITMAP *parede_texture = nullptr;
+
+// Ponteiros para as texturas dos itens
+ALLEGRO_BITMAP *moeda_texture = nullptr;
+ALLEGRO_BITMAP *pocao_texture = nullptr;
+ALLEGRO_BITMAP *chave_texture = nullptr;
+
+// NOVO: Ponteiros para as texturas dos jogadores
+ALLEGRO_BITMAP *player1_texture = nullptr;
+ALLEGRO_BITMAP *player2_texture = nullptr;
 
 
 // Variáveis globais para o jogo
@@ -75,40 +87,74 @@ bool inicializarAllegro() {
     al_init_font_addon();
     if (!al_init_ttf_addon()) {
         std::cerr << "ERRO: Falha ao inicializar o addon TTF de fonte!" << std::endl;
-        al_uninstall_system();
+        limparAllegro();
         return false;
     }
-    // NOVO: Inicializa o addon de imagem!
+    // Inicializa o addon de imagem!
     if (!al_init_image_addon()) {
         std::cerr << "ERRO: Falha ao inicializar o addon de imagem!" << std::endl;
-        al_uninstall_system();
+        limparAllegro();
         return false;
     }
 
-    font = al_load_font("arial.ttf", 24, 0);
+    font = al_load_font("arial.ttf", 256, 0);
     if (!font) {
-        std::cerr << "AVISO: Falha ao carregar arial.ttf. Usando fonte embutida." << std::endl;
+        std::cerr << "AVISO: Falha ao carregar arial.ttf. Tentando fonte embutida..." << std::endl;
         font = al_create_builtin_font();
         if (!font) {
-            std::cerr << "ERRO: Falha ao criar fonte embutida!" << std::endl;
-            al_uninstall_system();
-            return false;
+            std::cerr << "ERRO: Falha ao criar fonte embutida! O texto não será exibido." << std::endl;
         }
     }
 
-    // NOVO: Carrega as texturas dos tiles
-    // A rota é 'assets/nome_do_arquivo.png'
+    // Carrega as texturas dos tiles
     chao_texture = al_load_bitmap("../assets/chao1.png");
     if (!chao_texture) {
         std::cerr << "ERRO: Falha ao carregar assets/chao1.png! Verifique o caminho e o arquivo." << std::endl;
-        limparAllegro(); // Limpa o que já foi inicializado
+        limparAllegro();
         return false;
     }
 
     parede_texture = al_load_bitmap("../assets/parede.png");
     if (!parede_texture) {
         std::cerr << "ERRO: Falha ao carregar assets/parede.png! Verifique o caminho e o arquivo." << std::endl;
-        limparAllegro(); // Limpa o que já foi inicializado
+        limparAllegro();
+        return false;
+    }
+
+    // Carrega as texturas dos itens
+    moeda_texture = al_load_bitmap("../assets/banana.png");
+    if (!moeda_texture) {
+        std::cerr << "ERRO: Falha ao carregar assets/banana.png! Verifique o caminho e o arquivo." << std::endl;
+        limparAllegro();
+        return false;
+    }
+
+    pocao_texture = al_load_bitmap("../assets/uva.png");
+    if (!pocao_texture) {
+        std::cerr << "ERRO: Falha ao carregar assets/uva.png! Verifique o caminho e o arquivo." << std::endl;
+        limparAllegro();
+        return false;
+    }
+
+    chave_texture = al_load_bitmap("../assets/cereja.png");
+    if (!chave_texture) {
+        std::cerr << "ERRO: Falha ao carregar assets/cereja.png! Verifique o caminho e o arquivo." << std::endl;
+        limparAllegro();
+        return false;
+    }
+
+    // NOVO: Carrega as texturas dos jogadores
+    player1_texture = al_load_bitmap("../assets/player1.png");
+    if (!player1_texture) {
+        std::cerr << "ERRO: Falha ao carregar assets/player1.png! Verifique o caminho e o arquivo." << std::endl;
+        limparAllegro();
+        return false;
+    }
+
+    player2_texture = al_load_bitmap("../assets/player2.png");
+    if (!player2_texture) {
+        std::cerr << "ERRO: Falha ao carregar assets/player2.png! Verifique o caminho e o arquivo." << std::endl;
+        limparAllegro();
         return false;
     }
 
@@ -116,82 +162,182 @@ bool inicializarAllegro() {
 }
 
 void limparAllegro() {
-    // NOVO: Destruir as texturas carregadas
     if (chao_texture) {
         al_destroy_bitmap(chao_texture);
+        chao_texture = nullptr;
     }
     if (parede_texture) {
         al_destroy_bitmap(parede_texture);
+        parede_texture = nullptr;
+    }
+    if (moeda_texture) {
+        al_destroy_bitmap(moeda_texture);
+        moeda_texture = nullptr;
+    }
+    if (pocao_texture) {
+        al_destroy_bitmap(pocao_texture);
+        pocao_texture = nullptr;
+    }
+    if (chave_texture) {
+        al_destroy_bitmap(chave_texture);
+        chave_texture = nullptr;
+    }
+    // NOVO: Destruir as texturas dos jogadores
+    if (player1_texture) {
+        al_destroy_bitmap(player1_texture);
+        player1_texture = nullptr;
+    }
+    if (player2_texture) {
+        al_destroy_bitmap(player2_texture);
+        player2_texture = nullptr;
     }
 
     if (font) {
         al_destroy_font(font);
+        font = nullptr;
     }
     if (event_queue) {
         al_destroy_event_queue(event_queue);
+        event_queue = nullptr;
     }
     if (display) {
         al_destroy_display(display);
+        display = nullptr;
     }
+
     al_shutdown_primitives_addon();
+    al_shutdown_font_addon();
+    al_shutdown_image_addon();
     al_uninstall_system();
 }
 
 // --- Funções de Desenho ---
 void desenharMapa(const std::vector<std::vector<Tile>>& mapa) {
-    al_clear_to_color(al_map_rgb(0, 0, 0)); // Ainda limpa a tela para o caso de algum erro
+    al_clear_to_color(al_map_rgb(0, 0, 0));
 
     for (int y = 0; y < MAPA_ALTURA; ++y) {
         for (int x = 0; x < MAPA_LARGURA; ++x) {
-            float pos_x = static_cast<float>(x * TAMANHO_TILE);
-            float pos_y = static_cast<float>(y * TAMANHO_TILE);
+            // As posições de desenho agora usam a escala
+            float pos_x = static_cast<float>(x * TAMANHO_TILE * ESCALA_JANELA);
+            float pos_y = static_cast<float>(y * TAMANHO_TILE * ESCALA_JANELA);
 
             if (mapa[y][x].getTipoTile() == CHAO) {
-                // NOVO: Desenha a textura de chão
-                al_draw_bitmap(chao_texture, pos_x, pos_y, 0);
+                // Desenha a imagem do chão escalada
+                al_draw_scaled_bitmap(chao_texture,
+                                      0, 0,
+                                      al_get_bitmap_width(chao_texture), al_get_bitmap_height(chao_texture),
+                                      pos_x, pos_y,
+                                      TAMANHO_TILE * ESCALA_JANELA, TAMANHO_TILE * ESCALA_JANELA,
+                                      0);
             } else { // PAREDE
-                // NOVO: Desenha a textura de parede
-                al_draw_bitmap(parede_texture, pos_x, pos_y, 0);
+                // Desenha a imagem da parede escalada
+                al_draw_scaled_bitmap(parede_texture,
+                                      0, 0,
+                                      al_get_bitmap_width(parede_texture), al_get_bitmap_height(parede_texture),
+                                      pos_x, pos_y,
+                                      TAMANHO_TILE * ESCALA_JANELA, TAMANHO_TILE * ESCALA_JANELA,
+                                      0);
             }
         }
     }
 }
 
 void desenharJogadores(const std::vector<Jogador>& jogadores) {
+    // Novo tamanho que o jogador será desenhado na tela
+    float draw_player_size = TAMANHO_TILE * ESCALA_JANELA;
+
+    // Calcula o offset para centralizar a imagem no tile maior
+    float img_w1 = al_get_bitmap_width(player1_texture);
+    float img_h1 = al_get_bitmap_height(player1_texture);
+    float offset_x1 = (draw_player_size / 2) - (img_w1 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+    float offset_y1 = (draw_player_size / 2) - (img_h1 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+
+    float img_w2 = al_get_bitmap_width(player2_texture);
+    float img_h2 = al_get_bitmap_height(player2_texture);
+    float offset_x2 = (draw_player_size / 2) - (img_w2 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+    float offset_y2 = (draw_player_size / 2) - (img_h2 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+
+
     if (jogadores.size() > 0) {
-        al_draw_filled_circle(jogadores[0].getX() * TAMANHO_TILE + TAMANHO_TILE / 2,
-                             jogadores[0].getY() * TAMANHO_TILE + TAMANHO_TILE / 2,
-                             TAMANHO_TILE / 2 - 2, al_map_rgb(0, 0, 255)); // Azul
+        al_draw_scaled_bitmap(player1_texture,
+                              0, 0,
+                              img_w1, img_h1,
+                              jogadores[0].getX() * TAMANHO_TILE * ESCALA_JANELA + offset_x1,
+                              jogadores[0].getY() * TAMANHO_TILE * ESCALA_JANELA + offset_y1,
+                              img_w1 * (draw_player_size / TAMANHO_TILE), img_h1 * (draw_player_size / TAMANHO_TILE), // Escala a imagem do jogador
+                              0);
     }
     if (jogadores.size() > 1) {
-        al_draw_filled_circle(jogadores[1].getX() * TAMANHO_TILE + TAMANHO_TILE / 2,
-                             jogadores[1].getY() * TAMANHO_TILE + TAMANHO_TILE / 2,
-                             TAMANHO_TILE / 2 - 2, al_map_rgb(0, 255, 0)); // Verde
+        al_draw_scaled_bitmap(player2_texture,
+                              0, 0,
+                              img_w2, img_h2,
+                              jogadores[1].getX() * TAMANHO_TILE * ESCALA_JANELA + offset_x2,
+                              jogadores[1].getY() * TAMANHO_TILE * ESCALA_JANELA + offset_y2,
+                              img_w2 * (draw_player_size / TAMANHO_TILE), img_h2 * (draw_player_size / TAMANHO_TILE), // Escala a imagem do jogador
+                              0);
     }
 }
 
 void desenharItensNoMapa(const std::vector<Item>& itens) {
     for (const auto& item : itens) {
-        ALLEGRO_COLOR item_color;
-        if (item.getTipo() == MOEDA) item_color = al_map_rgb(255, 223, 0);
-        else if (item.getTipo() == POCAO) item_color = al_map_rgb(128, 0, 128);
-        else if (item.getTipo() == CHAVE) item_color = al_map_rgb(255, 255, 0);
-        else item_color = al_map_rgb(200, 200, 200);
+        // As posições de desenho agora usam a escala
+        float pos_x = static_cast<float>(item.getX() * TAMANHO_TILE * ESCALA_JANELA);
+        float pos_y = static_cast<float>(item.getY() * TAMANHO_TILE * ESCALA_JANELA);
 
-        al_draw_filled_circle(item.getX() * TAMANHO_TILE + TAMANHO_TILE / 2,
-                             item.getY() * TAMANHO_TILE + TAMANHO_TILE / 2,
-                             TAMANHO_TILE / 4,
-                             item_color);
+        ALLEGRO_BITMAP* current_item_texture = nullptr;
+
+        if (item.getTipo() == MOEDA) {
+            current_item_texture = moeda_texture;
+        } else if (item.getTipo() == POCAO) {
+            current_item_texture = pocao_texture;
+        } else if (item.getTipo() == CHAVE) {
+            current_item_texture = chave_texture;
+        }
+
+        if (current_item_texture) {
+            float img_w = al_get_bitmap_width(current_item_texture);
+            float img_h = al_get_bitmap_height(current_item_texture);
+            // O item deve ser desenhado para preencher o tile escalado, ou centralizado nele
+            float draw_item_size = TAMANHO_TILE * ESCALA_JANELA;
+            float draw_x = pos_x + (draw_item_size / 2) - (img_w * (draw_item_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+            float draw_y = pos_y + (draw_item_size / 2) - (img_h * (draw_item_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+
+            al_draw_scaled_bitmap(current_item_texture,
+                                  0, 0,
+                                  img_w, img_h,
+                                  draw_x, draw_y,
+                                  img_w * (draw_item_size / TAMANHO_TILE), img_h * (draw_item_size / TAMANHO_TILE), // Escala a imagem do item
+                                  0);
+        } else {
+            // Fallback para círculo colorido se a textura não for encontrada
+            ALLEGRO_COLOR item_color;
+            if (item.getTipo() == MOEDA) item_color = al_map_rgb(255, 223, 0);
+            else if (item.getTipo() == POCAO) item_color = al_map_rgb(128, 0, 128);
+            else if (item.getTipo() == CHAVE) item_color = al_map_rgb(255, 255, 0);
+            else item_color = al_map_rgb(200, 200, 200);
+
+            al_draw_filled_circle(pos_x + (TAMANHO_TILE * ESCALA_JANELA) / 2,
+                                 pos_y + (TAMANHO_TILE * ESCALA_JANELA) / 2,
+                                 (TAMANHO_TILE * ESCALA_JANELA) / 4, // Escala o raio do círculo
+                                 item_color);
+        }
     }
 }
 
+// Reposicionamento das barras de inventário
 void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int player_id) {
-    int ui_start_x = UI_OFFSET_X;
-    int ui_start_y = UI_OFFSET_Y;
+    int ui_start_x;
+    // Posição Y deve ser calculada baseada na nova altura da janela
+    int ui_start_y = ALTURA_JANELA - (UI_ITEM_SIZE + UI_OFFSET_Y + 10);
 
-    if (player_id == 2) {
-        ui_start_y += UI_ITEM_SIZE + UI_OFFSET_Y + 10;
+    // Ajusta a posição X com base no player_id
+    if (player_id == 1) {
+        ui_start_x = UI_OFFSET_X; // Canto inferior esquerdo
+    } else { // player_id == 2
+        // Canto inferior direito, ajustando pela largura da UI para que a barra comece mais à esquerda
+        ui_start_x = LARGURA_JANELA - (ITENS_PARA_VITORIA * (UI_ITEM_SIZE + UI_ITEM_GAP)) - UI_ITEM_GAP - UI_OFFSET_X - 60; // 60 é uma margem extra para o texto
     }
+
 
     float ui_bg_width = (ITENS_PARA_VITORIA * (UI_ITEM_SIZE + UI_ITEM_GAP)) + UI_ITEM_GAP;
     al_draw_filled_rectangle(ui_start_x - 5, ui_start_y - 5,
@@ -201,20 +347,48 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
 
     for (size_t i = 0; i < itens_coletados.size(); ++i) {
         const auto& item = itens_coletados[i];
-        ALLEGRO_COLOR item_color;
-        if (item.getTipo() == MOEDA) item_color = al_map_rgb(255, 223, 0);
-        else if (item.getTipo() == POCAO) item_color = al_map_rgb(128, 0, 128);
-        else if (item.getTipo() == CHAVE) item_color = al_map_rgb(255, 255, 0);
-        else item_color = al_map_rgb(200, 200, 200);
+        ALLEGRO_BITMAP* ui_item_texture = nullptr;
 
-        al_draw_filled_rectangle(ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)),
-                                 ui_start_y,
-                                 ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)) + UI_ITEM_SIZE,
-                                 ui_start_y + UI_ITEM_SIZE,
-                                 item_color);
+        if (item.getTipo() == MOEDA) {
+            ui_item_texture = moeda_texture;
+        } else if (item.getTipo() == POCAO) {
+            ui_item_texture = pocao_texture;
+        } else if (item.getTipo() == CHAVE) {
+            ui_item_texture = chave_texture;
+        }
+
+        if (ui_item_texture) {
+            al_draw_scaled_bitmap(ui_item_texture,
+                                  0, 0,
+                                  al_get_bitmap_width(ui_item_texture), al_get_bitmap_height(ui_item_texture),
+                                  ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)),
+                                  ui_start_y,
+                                  UI_ITEM_SIZE, UI_ITEM_SIZE,
+                                  0);
+        } else {
+            ALLEGRO_COLOR item_color;
+            if (item.getTipo() == MOEDA) item_color = al_map_rgb(255, 223, 0);
+            else if (item.getTipo() == POCAO) item_color = al_map_rgb(128, 0, 128);
+            else if (item.getTipo() == CHAVE) item_color = al_map_rgb(255, 255, 0);
+            else item_color = al_map_rgb(200, 200, 200);
+
+            al_draw_filled_rectangle(ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)),
+                                     ui_start_y,
+                                     ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)) + UI_ITEM_SIZE,
+                                     ui_start_y + UI_ITEM_SIZE,
+                                     item_color);
+        }
     }
     if (font) {
-        al_draw_textf(font, al_map_rgb(255, 255, 255), ui_start_x + ui_bg_width + 10, ui_start_y + (UI_ITEM_SIZE / 2) - (al_get_font_line_height(font) / 2), 0,
+        // Ajuste a posição do texto para acompanhar a barra
+        int text_x_offset;
+        if (player_id == 1) {
+            text_x_offset = ui_start_x + ui_bg_width + 10; // À direita da barra
+        } else {
+            text_x_offset = ui_start_x - 10; // À esquerda da barra
+        }
+        al_draw_textf(font, al_map_rgb(255, 255, 255), text_x_offset, ui_start_y + (UI_ITEM_SIZE / 2) - (al_get_font_line_height(font) / 2),
+                      (player_id == 1 ? 0 : ALLEGRO_ALIGN_RIGHT), // Alinha à direita para o P2
                       "P%d: %d/%d", player_id, (int)itens_coletados.size(), ITENS_PARA_VITORIA);
     }
 }
@@ -292,7 +466,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    al_set_window_title(display, "Jogo com Labirinto e Itens");
+    al_set_window_title(display, "Jardim das Guloseimas");
 
     event_queue = al_create_event_queue();
     if (!event_queue) {
@@ -407,12 +581,12 @@ int main(int argc, char **argv) {
                 if (itens_no_mapa[i].getX() == jogadores[0].getX() && itens_no_mapa[i].getY() == jogadores[0].getY()) {
                     itens_coletados_player1.push_back(itens_no_mapa[i]);
                     indices_a_remover.push_back(i);
-                    std::cout << "Jogador 1 coletou um item tipo " << itens_no_mapa[i].getTipo() << std::endl;
+                    std::cout << "Porcão Bola Bola coletou um item tipo " << itens_no_mapa[i].getTipo() << std::endl;
                 }
                 else if (itens_no_mapa[i].getX() == jogadores[1].getX() && itens_no_mapa[i].getY() == jogadores[1].getY()) {
                     itens_coletados_player2.push_back(itens_no_mapa[i]);
                     indices_a_remover.push_back(i);
-                    std::cout << "Jogador 2 coletou um item tipo " << itens_no_mapa[i].getTipo() << std::endl;
+                    std::cout << "The King The Power The Best coletou um item tipo " << itens_no_mapa[i].getTipo() << std::endl;
                 }
             }
 

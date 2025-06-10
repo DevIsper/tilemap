@@ -34,8 +34,11 @@ int ALTURA_JANELA = static_cast<int>(MAPA_ALTURA * TAMANHO_TILE * ESCALA_JANELA)
 // Constantes para a área de UI dos itens coletados
 const int UI_OFFSET_X = 20;
 const int UI_OFFSET_Y = 20;
-const int UI_ITEM_GAP = 2;
-const int UI_ITEM_SIZE = 16;
+// --- MODIFICAÇÃO AQUI: Aumentar o tamanho do item e o espaçamento ---
+const int UI_ITEM_GAP = 5; // Aumentei o espaçamento entre os itens
+const int UI_ITEM_SIZE = 48; // Aumentei o tamanho de cada item na UI (era 16)
+// --- FIM DA MODIFICAÇÃO ---
+
 
 // Condição de vitória
 const int ITENS_PARA_VITORIA = 6;
@@ -43,6 +46,7 @@ const int ITENS_PARA_VITORIA = 6;
 ALLEGRO_DISPLAY *display = nullptr;
 ALLEGRO_EVENT_QUEUE *event_queue = nullptr;
 ALLEGRO_FONT *font = nullptr;
+ALLEGRO_FONT *ui_font = nullptr; // NOVO: Fonte separada para a UI
 
 // Ponteiros para as texturas dos tiles
 ALLEGRO_BITMAP *chao_texture = nullptr;
@@ -97,14 +101,26 @@ bool inicializarAllegro() {
         return false;
     }
 
-    font = al_load_font("arial.ttf", 256, 0);
+    // --- MODIFICAÇÃO AQUI: Aumentar o tamanho da fonte de vitória ---
+    font = al_load_font("arial.ttf", 96, 0); // Fonte para mensagem de vitória (era 256, que era grande demais para a janela)
     if (!font) {
-        std::cerr << "AVISO: Falha ao carregar arial.ttf. Tentando fonte embutida..." << std::endl;
+        std::cerr << "AVISO: Falha ao carregar arial.ttf. Tentando fonte embutida para mensagem de vitória..." << std::endl;
         font = al_create_builtin_font();
         if (!font) {
             std::cerr << "ERRO: Falha ao criar fonte embutida! O texto não será exibido." << std::endl;
         }
     }
+
+    // --- NOVO: Fonte separada para a UI dos itens ---
+    ui_font = al_load_font("arial.ttf", 36, 0); // Fonte para o texto "P1: X/Y" (era 24 padrão)
+    if (!ui_font) {
+        std::cerr << "AVISO: Falha ao carregar arial.ttf. Tentando fonte embutida para UI..." << std::endl;
+        ui_font = al_create_builtin_font();
+        if (!ui_font) {
+            std::cerr << "ERRO: Falha ao criar fonte embutida para UI! O texto da UI não será exibido." << std::endl;
+        }
+    }
+    // --- FIM DA MODIFICAÇÃO ---
 
     // Carrega as texturas dos tiles
     chao_texture = al_load_bitmap("../assets/chao1.png");
@@ -195,6 +211,10 @@ void limparAllegro() {
     if (font) {
         al_destroy_font(font);
         font = nullptr;
+    }
+    if (ui_font) { // NOVO: Destruir a fonte da UI
+        al_destroy_font(ui_font);
+        ui_font = nullptr;
     }
     if (event_queue) {
         al_destroy_event_queue(event_queue);
@@ -328,17 +348,19 @@ void desenharItensNoMapa(const std::vector<Item>& itens) {
 void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int player_id) {
     int ui_start_x;
     // Posição Y deve ser calculada baseada na nova altura da janela
-    int ui_start_y = ALTURA_JANELA - (UI_ITEM_SIZE + UI_OFFSET_Y + 10);
+    // Aumentei um pouco a margem para cima para a barra ficar mais visível com o tamanho maior.
+    int ui_start_y = ALTURA_JANELA - (UI_ITEM_SIZE + UI_OFFSET_Y + 20);
 
     // Ajusta a posição X com base no player_id
     if (player_id == 1) {
         ui_start_x = UI_OFFSET_X; // Canto inferior esquerdo
     } else { // player_id == 2
         // Canto inferior direito, ajustando pela largura da UI para que a barra comece mais à esquerda
-        ui_start_x = LARGURA_JANELA - (ITENS_PARA_VITORIA * (UI_ITEM_SIZE + UI_ITEM_GAP)) - UI_ITEM_GAP - UI_OFFSET_X - 60; // 60 é uma margem extra para o texto
+        // O valor 100 é uma margem extra para o texto, já que a fonte da UI ficou maior.
+        ui_start_x = LARGURA_JANELA - (ITENS_PARA_VITORIA * (UI_ITEM_SIZE + UI_ITEM_GAP)) - UI_ITEM_GAP - UI_OFFSET_X - 100;
     }
 
-
+    // O fundo da barra também precisa se ajustar ao novo tamanho dos itens
     float ui_bg_width = (ITENS_PARA_VITORIA * (UI_ITEM_SIZE + UI_ITEM_GAP)) + UI_ITEM_GAP;
     al_draw_filled_rectangle(ui_start_x - 5, ui_start_y - 5,
                              ui_start_x + ui_bg_width + 5,
@@ -358,6 +380,7 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
         }
 
         if (ui_item_texture) {
+            // Desenha a imagem do item na UI, escalando para o novo UI_ITEM_SIZE
             al_draw_scaled_bitmap(ui_item_texture,
                                   0, 0,
                                   al_get_bitmap_width(ui_item_texture), al_get_bitmap_height(ui_item_texture),
@@ -372,6 +395,7 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
             else if (item.getTipo() == CHAVE) item_color = al_map_rgb(255, 255, 0);
             else item_color = al_map_rgb(200, 200, 200);
 
+            // Desenha o retângulo de fallback, usando o novo UI_ITEM_SIZE
             al_draw_filled_rectangle(ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)),
                                      ui_start_y,
                                      ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)) + UI_ITEM_SIZE,
@@ -379,7 +403,8 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
                                      item_color);
         }
     }
-    if (font) {
+    // --- MODIFICAÇÃO AQUI: Usar a nova fonte da UI e ajustar a posição do texto ---
+    if (ui_font) { // Usar a nova fonte da UI
         // Ajuste a posição do texto para acompanhar a barra
         int text_x_offset;
         if (player_id == 1) {
@@ -387,10 +412,11 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
         } else {
             text_x_offset = ui_start_x - 10; // À esquerda da barra
         }
-        al_draw_textf(font, al_map_rgb(255, 255, 255), text_x_offset, ui_start_y + (UI_ITEM_SIZE / 2) - (al_get_font_line_height(font) / 2),
+        al_draw_textf(ui_font, al_map_rgb(255, 255, 255), text_x_offset, ui_start_y + (UI_ITEM_SIZE / 2) - (al_get_font_line_height(ui_font) / 2),
                       (player_id == 1 ? 0 : ALLEGRO_ALIGN_RIGHT), // Alinha à direita para o P2
                       "P%d: %d/%d", player_id, (int)itens_coletados.size(), ITENS_PARA_VITORIA);
     }
+    // --- FIM DA MODIFICAÇÃO ---
 }
 
 
@@ -514,6 +540,7 @@ int main(int argc, char **argv) {
     std::uniform_int_distribution<> dis_x(1, MAPA_LARGURA - 2);
     std::uniform_int_distribution<> dis_y(1, MAPA_ALTURA - 2);
 
+    // Mudei os assets dos itens aqui só pra seguir o seu exemplo que mudou eles de morango/geleia/baguette para banana/uva/cereja
     std::vector<TipoItem> tipos_disponiveis = {MOEDA, MOEDA, MOEDA, POCAO, POCAO, POCAO, CHAVE, CHAVE, MOEDA, POCAO};
 
     for (int i = 0; i < 10; ++i) {

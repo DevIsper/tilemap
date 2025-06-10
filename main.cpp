@@ -1,4 +1,3 @@
-// main.cpp
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
@@ -14,55 +13,42 @@ void limparAllegro();
 #include <cstdlib>
 #include <algorithm>
 
-// Inclua suas classes
 #include "model/valueobjects/Tipo.cpp"
 #include "model/Tile.h"
 #include "model/Jogador.h"
 #include "model/Item.h"
 
-// --- Dimensões do Mapa e Janela ---
 const int MAPA_LARGURA = 50;
 const int MAPA_ALTURA = 30;
-const int TAMANHO_TILE = 20; // Tamanho lógico do tile (para cálculos internos)
+const int TAMANHO_TILE = 20;
 
-// NOVO: Multiplicador para a escala da janela
-const float ESCALA_JANELA = 2.5f; // Cada tile de 20px será desenhado como 50px (20 * 2.5)
+const float ESCALA_JANELA = 2.5f;
 
 int LARGURA_JANELA = static_cast<int>(MAPA_LARGURA * TAMANHO_TILE * ESCALA_JANELA);
 int ALTURA_JANELA = static_cast<int>(MAPA_ALTURA * TAMANHO_TILE * ESCALA_JANELA);
 
-// Constantes para a área de UI dos itens coletados
 const int UI_OFFSET_X = 20;
 const int UI_OFFSET_Y = 20;
-// --- MODIFICAÇÃO AQUI: Aumentar o tamanho do item e o espaçamento ---
-const int UI_ITEM_GAP = 5; // Aumentei o espaçamento entre os itens
-const int UI_ITEM_SIZE = 48; // Aumentei o tamanho de cada item na UI (era 16)
-// --- FIM DA MODIFICAÇÃO ---
+const int UI_ITEM_GAP = 5;
+const int UI_ITEM_SIZE = 48;
 
-
-// Condição de vitória
 const int ITENS_PARA_VITORIA = 6;
 
 ALLEGRO_DISPLAY *display = nullptr;
 ALLEGRO_EVENT_QUEUE *event_queue = nullptr;
 ALLEGRO_FONT *font = nullptr;
-ALLEGRO_FONT *ui_font = nullptr; // NOVO: Fonte separada para a UI
+ALLEGRO_FONT *ui_font = nullptr;
 
-// Ponteiros para as texturas dos tiles
 ALLEGRO_BITMAP *chao_texture = nullptr;
 ALLEGRO_BITMAP *parede_texture = nullptr;
 
-// Ponteiros para as texturas dos itens
 ALLEGRO_BITMAP *moeda_texture = nullptr;
 ALLEGRO_BITMAP *pocao_texture = nullptr;
 ALLEGRO_BITMAP *chave_texture = nullptr;
 
-// NOVO: Ponteiros para as texturas dos jogadores
 ALLEGRO_BITMAP *player1_texture = nullptr;
 ALLEGRO_BITMAP *player2_texture = nullptr;
 
-
-// Variáveis globais para o jogo
 std::vector<std::vector<int>> mapa_layout(MAPA_ALTURA, std::vector<int>(MAPA_LARGURA));
 std::vector<std::vector<Tile>> mapa_allegro(MAPA_ALTURA, std::vector<Tile>(MAPA_LARGURA));
 std::vector<Jogador> jogadores;
@@ -73,8 +59,6 @@ std::vector<Item> itens_coletados_player2;
 bool game_over = false;
 int vencedor = 0;
 
-
-// --- Funções de Inicialização e Limpeza do Allegro ---
 bool inicializarAllegro() {
     if (!al_init()) {
         std::cerr << "ERRO: Falha ao inicializar o Allegro!" << std::endl;
@@ -94,35 +78,29 @@ bool inicializarAllegro() {
         limparAllegro();
         return false;
     }
-    // Inicializa o addon de imagem!
     if (!al_init_image_addon()) {
         std::cerr << "ERRO: Falha ao inicializar o addon de imagem!" << std::endl;
         limparAllegro();
         return false;
     }
-
-    // --- MODIFICAÇÃO AQUI: Aumentar o tamanho da fonte de vitória ---
-    font = al_load_font("arial.ttf", 96, 0); // Fonte para mensagem de vitória (era 256, que era grande demais para a janela)
+    font = al_load_font("../assets/arial.ttf", 96, 0);
     if (!font) {
-        std::cerr << "AVISO: Falha ao carregar arial.ttf. Tentando fonte embutida para mensagem de vitória..." << std::endl;
+        std::cerr << "AVISO: Falha ao carregar arial.ttf da pasta assets. Tentando fonte embutida para mensagem de vitória..." << std::endl;
         font = al_create_builtin_font();
         if (!font) {
             std::cerr << "ERRO: Falha ao criar fonte embutida! O texto não será exibido." << std::endl;
         }
     }
 
-    // --- NOVO: Fonte separada para a UI dos itens ---
-    ui_font = al_load_font("arial.ttf", 36, 0); // Fonte para o texto "P1: X/Y" (era 24 padrão)
+    ui_font = al_load_font("../assets/arial.ttf", 36, 0);
     if (!ui_font) {
-        std::cerr << "AVISO: Falha ao carregar arial.ttf. Tentando fonte embutida para UI..." << std::endl;
+        std::cerr << "AVISO: Falha ao carregar arial.ttf da pasta assets. Tentando fonte embutida para UI..." << std::endl;
         ui_font = al_create_builtin_font();
         if (!ui_font) {
             std::cerr << "ERRO: Falha ao criar fonte embutida para UI! O texto da UI não será exibido." << std::endl;
         }
     }
-    // --- FIM DA MODIFICAÇÃO ---
 
-    // Carrega as texturas dos tiles
     chao_texture = al_load_bitmap("../assets/chao1.png");
     if (!chao_texture) {
         std::cerr << "ERRO: Falha ao carregar assets/chao1.png! Verifique o caminho e o arquivo." << std::endl;
@@ -137,7 +115,6 @@ bool inicializarAllegro() {
         return false;
     }
 
-    // Carrega as texturas dos itens
     moeda_texture = al_load_bitmap("../assets/banana.png");
     if (!moeda_texture) {
         std::cerr << "ERRO: Falha ao carregar assets/banana.png! Verifique o caminho e o arquivo." << std::endl;
@@ -159,7 +136,6 @@ bool inicializarAllegro() {
         return false;
     }
 
-    // NOVO: Carrega as texturas dos jogadores
     player1_texture = al_load_bitmap("../assets/player1.png");
     if (!player1_texture) {
         std::cerr << "ERRO: Falha ao carregar assets/player1.png! Verifique o caminho e o arquivo." << std::endl;
@@ -198,7 +174,6 @@ void limparAllegro() {
         al_destroy_bitmap(chave_texture);
         chave_texture = nullptr;
     }
-    // NOVO: Destruir as texturas dos jogadores
     if (player1_texture) {
         al_destroy_bitmap(player1_texture);
         player1_texture = nullptr;
@@ -212,7 +187,7 @@ void limparAllegro() {
         al_destroy_font(font);
         font = nullptr;
     }
-    if (ui_font) { // NOVO: Destruir a fonte da UI
+    if (ui_font) {
         al_destroy_font(ui_font);
         ui_font = nullptr;
     }
@@ -231,26 +206,22 @@ void limparAllegro() {
     al_uninstall_system();
 }
 
-// --- Funções de Desenho ---
 void desenharMapa(const std::vector<std::vector<Tile>>& mapa) {
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
     for (int y = 0; y < MAPA_ALTURA; ++y) {
         for (int x = 0; x < MAPA_LARGURA; ++x) {
-            // As posições de desenho agora usam a escala
             float pos_x = static_cast<float>(x * TAMANHO_TILE * ESCALA_JANELA);
             float pos_y = static_cast<float>(y * TAMANHO_TILE * ESCALA_JANELA);
 
             if (mapa[y][x].getTipoTile() == CHAO) {
-                // Desenha a imagem do chão escalada
                 al_draw_scaled_bitmap(chao_texture,
                                       0, 0,
                                       al_get_bitmap_width(chao_texture), al_get_bitmap_height(chao_texture),
                                       pos_x, pos_y,
                                       TAMANHO_TILE * ESCALA_JANELA, TAMANHO_TILE * ESCALA_JANELA,
                                       0);
-            } else { // PAREDE
-                // Desenha a imagem da parede escalada
+            } else {
                 al_draw_scaled_bitmap(parede_texture,
                                       0, 0,
                                       al_get_bitmap_width(parede_texture), al_get_bitmap_height(parede_texture),
@@ -263,20 +234,17 @@ void desenharMapa(const std::vector<std::vector<Tile>>& mapa) {
 }
 
 void desenharJogadores(const std::vector<Jogador>& jogadores) {
-    // Novo tamanho que o jogador será desenhado na tela
     float draw_player_size = TAMANHO_TILE * ESCALA_JANELA;
 
-    // Calcula o offset para centralizar a imagem no tile maior
     float img_w1 = al_get_bitmap_width(player1_texture);
     float img_h1 = al_get_bitmap_height(player1_texture);
-    float offset_x1 = (draw_player_size / 2) - (img_w1 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
-    float offset_y1 = (draw_player_size / 2) - (img_h1 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+    float offset_x1 = (draw_player_size / 2) - (img_w1 * (draw_player_size / TAMANHO_TILE) / 2);
+    float offset_y1 = (draw_player_size / 2) - (img_h1 * (draw_player_size / TAMANHO_TILE) / 2);
 
     float img_w2 = al_get_bitmap_width(player2_texture);
     float img_h2 = al_get_bitmap_height(player2_texture);
-    float offset_x2 = (draw_player_size / 2) - (img_w2 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
-    float offset_y2 = (draw_player_size / 2) - (img_h2 * (draw_player_size / TAMANHO_TILE) / 2); // Ajusta para a escala
-
+    float offset_x2 = (draw_player_size / 2) - (img_w2 * (draw_player_size / TAMANHO_TILE) / 2);
+    float offset_y2 = (draw_player_size / 2) - (img_h2 * (draw_player_size / TAMANHO_TILE) / 2);
 
     if (jogadores.size() > 0) {
         al_draw_scaled_bitmap(player1_texture,
@@ -284,7 +252,7 @@ void desenharJogadores(const std::vector<Jogador>& jogadores) {
                               img_w1, img_h1,
                               jogadores[0].getX() * TAMANHO_TILE * ESCALA_JANELA + offset_x1,
                               jogadores[0].getY() * TAMANHO_TILE * ESCALA_JANELA + offset_y1,
-                              img_w1 * (draw_player_size / TAMANHO_TILE), img_h1 * (draw_player_size / TAMANHO_TILE), // Escala a imagem do jogador
+                              img_w1 * (draw_player_size / TAMANHO_TILE), img_h1 * (draw_player_size / TAMANHO_TILE),
                               0);
     }
     if (jogadores.size() > 1) {
@@ -293,14 +261,13 @@ void desenharJogadores(const std::vector<Jogador>& jogadores) {
                               img_w2, img_h2,
                               jogadores[1].getX() * TAMANHO_TILE * ESCALA_JANELA + offset_x2,
                               jogadores[1].getY() * TAMANHO_TILE * ESCALA_JANELA + offset_y2,
-                              img_w2 * (draw_player_size / TAMANHO_TILE), img_h2 * (draw_player_size / TAMANHO_TILE), // Escala a imagem do jogador
+                              img_w2 * (draw_player_size / TAMANHO_TILE), img_h2 * (draw_player_size / TAMANHO_TILE),
                               0);
     }
 }
 
 void desenharItensNoMapa(const std::vector<Item>& itens) {
     for (const auto& item : itens) {
-        // As posições de desenho agora usam a escala
         float pos_x = static_cast<float>(item.getX() * TAMANHO_TILE * ESCALA_JANELA);
         float pos_y = static_cast<float>(item.getY() * TAMANHO_TILE * ESCALA_JANELA);
 
@@ -317,19 +284,17 @@ void desenharItensNoMapa(const std::vector<Item>& itens) {
         if (current_item_texture) {
             float img_w = al_get_bitmap_width(current_item_texture);
             float img_h = al_get_bitmap_height(current_item_texture);
-            // O item deve ser desenhado para preencher o tile escalado, ou centralizado nele
             float draw_item_size = TAMANHO_TILE * ESCALA_JANELA;
-            float draw_x = pos_x + (draw_item_size / 2) - (img_w * (draw_item_size / TAMANHO_TILE) / 2); // Ajusta para a escala
-            float draw_y = pos_y + (draw_item_size / 2) - (img_h * (draw_item_size / TAMANHO_TILE) / 2); // Ajusta para a escala
+            float draw_x = pos_x + (draw_item_size / 2) - (img_w * (draw_item_size / TAMANHO_TILE) / 2);
+            float draw_y = pos_y + (draw_item_size / 2) - (img_h * (draw_item_size / TAMANHO_TILE) / 2);
 
             al_draw_scaled_bitmap(current_item_texture,
                                   0, 0,
                                   img_w, img_h,
                                   draw_x, draw_y,
-                                  img_w * (draw_item_size / TAMANHO_TILE), img_h * (draw_item_size / TAMANHO_TILE), // Escala a imagem do item
+                                  img_w * (draw_item_size / TAMANHO_TILE), img_h * (draw_item_size / TAMANHO_TILE),
                                   0);
         } else {
-            // Fallback para círculo colorido se a textura não for encontrada
             ALLEGRO_COLOR item_color;
             if (item.getTipo() == MOEDA) item_color = al_map_rgb(255, 223, 0);
             else if (item.getTipo() == POCAO) item_color = al_map_rgb(128, 0, 128);
@@ -338,29 +303,22 @@ void desenharItensNoMapa(const std::vector<Item>& itens) {
 
             al_draw_filled_circle(pos_x + (TAMANHO_TILE * ESCALA_JANELA) / 2,
                                  pos_y + (TAMANHO_TILE * ESCALA_JANELA) / 2,
-                                 (TAMANHO_TILE * ESCALA_JANELA) / 4, // Escala o raio do círculo
+                                 (TAMANHO_TILE * ESCALA_JANELA) / 4,
                                  item_color);
         }
     }
 }
 
-// Reposicionamento das barras de inventário
 void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int player_id) {
     int ui_start_x;
-    // Posição Y deve ser calculada baseada na nova altura da janela
-    // Aumentei um pouco a margem para cima para a barra ficar mais visível com o tamanho maior.
     int ui_start_y = ALTURA_JANELA - (UI_ITEM_SIZE + UI_OFFSET_Y + 20);
 
-    // Ajusta a posição X com base no player_id
     if (player_id == 1) {
-        ui_start_x = UI_OFFSET_X; // Canto inferior esquerdo
-    } else { // player_id == 2
-        // Canto inferior direito, ajustando pela largura da UI para que a barra comece mais à esquerda
-        // O valor 100 é uma margem extra para o texto, já que a fonte da UI ficou maior.
+        ui_start_x = UI_OFFSET_X;
+    } else {
         ui_start_x = LARGURA_JANELA - (ITENS_PARA_VITORIA * (UI_ITEM_SIZE + UI_ITEM_GAP)) - UI_ITEM_GAP - UI_OFFSET_X - 100;
     }
 
-    // O fundo da barra também precisa se ajustar ao novo tamanho dos itens
     float ui_bg_width = (ITENS_PARA_VITORIA * (UI_ITEM_SIZE + UI_ITEM_GAP)) + UI_ITEM_GAP;
     al_draw_filled_rectangle(ui_start_x - 5, ui_start_y - 5,
                              ui_start_x + ui_bg_width + 5,
@@ -380,7 +338,6 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
         }
 
         if (ui_item_texture) {
-            // Desenha a imagem do item na UI, escalando para o novo UI_ITEM_SIZE
             al_draw_scaled_bitmap(ui_item_texture,
                                   0, 0,
                                   al_get_bitmap_width(ui_item_texture), al_get_bitmap_height(ui_item_texture),
@@ -395,7 +352,6 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
             else if (item.getTipo() == CHAVE) item_color = al_map_rgb(255, 255, 0);
             else item_color = al_map_rgb(200, 200, 200);
 
-            // Desenha o retângulo de fallback, usando o novo UI_ITEM_SIZE
             al_draw_filled_rectangle(ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)),
                                      ui_start_y,
                                      ui_start_x + (i * (UI_ITEM_SIZE + UI_ITEM_GAP)) + UI_ITEM_SIZE,
@@ -403,24 +359,19 @@ void desenharItensColetadosUI(const std::vector<Item>& itens_coletados, int play
                                      item_color);
         }
     }
-    // --- MODIFICAÇÃO AQUI: Usar a nova fonte da UI e ajustar a posição do texto ---
-    if (ui_font) { // Usar a nova fonte da UI
-        // Ajuste a posição do texto para acompanhar a barra
+    if (ui_font) {
         int text_x_offset;
         if (player_id == 1) {
-            text_x_offset = ui_start_x + ui_bg_width + 10; // À direita da barra
+            text_x_offset = ui_start_x + ui_bg_width + 10;
         } else {
-            text_x_offset = ui_start_x - 10; // À esquerda da barra
+            text_x_offset = ui_start_x - 10;
         }
         al_draw_textf(ui_font, al_map_rgb(255, 255, 255), text_x_offset, ui_start_y + (UI_ITEM_SIZE / 2) - (al_get_font_line_height(ui_font) / 2),
-                      (player_id == 1 ? 0 : ALLEGRO_ALIGN_RIGHT), // Alinha à direita para o P2
+                      (player_id == 1 ? 0 : ALLEGRO_ALIGN_RIGHT),
                       "P%d: %d/%d", player_id, (int)itens_coletados.size(), ITENS_PARA_VITORIA);
     }
-    // --- FIM DA MODIFICAÇÃO ---
 }
 
-
-// --- Funções de Geração de Labirinto ---
 std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
 bool is_valid_maze_pos(int r, int c) {
@@ -430,7 +381,7 @@ bool is_valid_maze_pos(int r, int c) {
 void generateMaze(std::vector<std::vector<int>>& maze) {
     for (int y = 0; y < MAPA_ALTURA; ++y) {
         for (int x = 0; x < MAPA_LARGURA; ++x) {
-            maze[y][x] = 1; // Tudo parede
+            maze[y][x] = 1;
         }
     }
 
@@ -439,7 +390,7 @@ void generateMaze(std::vector<std::vector<int>>& maze) {
 
     std::vector<std::pair<int, int>> stack;
     stack.push_back({start_y, start_x});
-    maze[start_y][start_x] = 0; // Marca o ponto inicial como chão
+    maze[start_y][start_x] = 0;
 
     std::vector<std::pair<int, int>> directions = { {-2, 0}, {2, 0}, {0, -2}, {0, 2} };
 
@@ -466,7 +417,6 @@ void generateMaze(std::vector<std::vector<int>>& maze) {
         }
     }
 
-    // Garantir que as bordas externas sejam sempre paredes
     for (int y = 0; y < MAPA_ALTURA; ++y) {
         maze[y][0] = 1;
         maze[y][MAPA_LARGURA - 1] = 1;
@@ -477,8 +427,6 @@ void generateMaze(std::vector<std::vector<int>>& maze) {
     }
 }
 
-
-// --- Função Principal ---
 int main(int argc, char **argv) {
     if (!inicializarAllegro()) {
         limparAllegro();
@@ -504,17 +452,14 @@ int main(int argc, char **argv) {
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_keyboard_event_source());
 
-    // --- Gerar o labirinto 50x30 ---
     generateMaze(mapa_layout);
 
-    // --- Traduz o mapa_layout para mapa_allegro de Tiles ---
     for (int y = 0; y < MAPA_ALTURA; ++y) {
         for (int x = 0; x < MAPA_LARGURA; ++x) {
             mapa_allegro[y][x].setTipoTile(static_cast<Tipo>(mapa_layout[y][x]));
         }
     }
 
-    // --- Inicializa Jogadores ---
     int j1_start_x = 1, j1_start_y = 1;
     while (mapa_layout[j1_start_y][j1_start_x] == PAREDE) {
         j1_start_x++;
@@ -535,12 +480,9 @@ int main(int argc, char **argv) {
     }
     jogadores.emplace_back(j2_start_x, j2_start_y);
 
-
-    // --- Inicializa 10 Itens no Mapa (em posições de chão aleatórias) ---
     std::uniform_int_distribution<> dis_x(1, MAPA_LARGURA - 2);
     std::uniform_int_distribution<> dis_y(1, MAPA_ALTURA - 2);
 
-    // Mudei os assets dos itens aqui só pra seguir o seu exemplo que mudou eles de morango/geleia/baguette para banana/uva/cereja
     std::vector<TipoItem> tipos_disponiveis = {MOEDA, MOEDA, MOEDA, POCAO, POCAO, POCAO, CHAVE, CHAVE, MOEDA, POCAO};
 
     for (int i = 0; i < 10; ++i) {
@@ -553,8 +495,6 @@ int main(int argc, char **argv) {
         itens_no_mapa.emplace_back(item_x, item_y, tipos_disponiveis[i % tipos_disponiveis.size()]);
     }
 
-
-    // --- DESENHA A TELA INICIALMENTE ---
     desenharMapa(mapa_allegro);
     desenharItensNoMapa(itens_no_mapa);
     desenharJogadores(jogadores);
@@ -562,19 +502,16 @@ int main(int argc, char **argv) {
     desenharItensColetadosUI(itens_coletados_player2, 2);
     al_flip_display();
 
-    // Loop principal do jogo
     bool running = true;
     while (running) {
         ALLEGRO_EVENT ev;
         al_wait_for_event(event_queue, &ev);
 
-        // --- Processamento de Eventos ---
         if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
             running = false;
         }
 
         if (ev.type == ALLEGRO_EVENT_KEY_DOWN && !game_over) {
-            // Controles Jogador 1 (WASD)
             if (ev.keyboard.keycode == ALLEGRO_KEY_W) {
                 jogadores[0].mover(0, -1, mapa_layout, MAPA_LARGURA, MAPA_ALTURA);
             } else if (ev.keyboard.keycode == ALLEGRO_KEY_S) {
@@ -584,7 +521,6 @@ int main(int argc, char **argv) {
             } else if (ev.keyboard.keycode == ALLEGRO_KEY_D) {
                 jogadores[0].mover(1, 0, mapa_layout, MAPA_LARGURA, MAPA_ALTURA);
             }
-            // Controles Jogador 2 (Setas)
             else if (ev.keyboard.keycode == ALLEGRO_KEY_UP) {
                 jogadores[1].mover(0, -1, mapa_layout, MAPA_LARGURA, MAPA_ALTURA);
             } else if (ev.keyboard.keycode == ALLEGRO_KEY_DOWN) {
@@ -599,7 +535,6 @@ int main(int argc, char **argv) {
             running = false;
         }
 
-        // --- Lógica de Coleta de Itens (apenas se o jogo não tiver terminado) ---
         if (!game_over) {
             std::vector<Item> itens_coletados_neste_frame;
             std::vector<int> indices_a_remover;
@@ -622,7 +557,6 @@ int main(int argc, char **argv) {
                 itens_no_mapa.erase(itens_no_mapa.begin() + idx);
             }
 
-            // --- Verifica condição de vitória ---
             if (itens_coletados_player1.size() >= ITENS_PARA_VITORIA) {
                 game_over = true;
                 vencedor = 1;
@@ -632,7 +566,6 @@ int main(int argc, char **argv) {
             }
         }
 
-        // --- Desenho (Renderização) ---
         desenharMapa(mapa_allegro);
         desenharItensNoMapa(itens_no_mapa);
         desenharJogadores(jogadores);

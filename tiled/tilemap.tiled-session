@@ -1,0 +1,19 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+    },
+    "map.height": 30,
+    "map.width": 50,
+    "openFiles": [
+    ],
+    "project": "tilemap.tiled-project",
+    "recentFiles": [
+    ]
+}

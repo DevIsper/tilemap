@@ -1,0 +1,3 @@
+/Users/DevIsper/Programação/Estudo/FEMA/2º Ano/Celio/allegro/tilemap/cmake-build-debug/CMakeFiles/tilemap.dir
+/Users/DevIsper/Programação/Estudo/FEMA/2º Ano/Celio/allegro/tilemap/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/DevIsper/Programação/Estudo/FEMA/2º Ano/Celio/allegro/tilemap/cmake-build-debug/CMakeFiles/rebuild_cache.dir
